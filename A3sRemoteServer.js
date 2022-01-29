@@ -1,29 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.A3sDataTypes = exports.A3sEncryption = exports.A3sProtocol = void 0;
-const zlib = __importStar(require("zlib"));
+const zlib_1 = require("zlib");
 const got_1 = __importDefault(require("got"));
 // ArmA3Sync & java.io interfaces stolen from: https://github.com/gruppe-adler/node-arma3sync-lib
 const java_io_1 = require("java.io");
@@ -69,7 +50,7 @@ class A3sRemoteServer {
         if (reqUrl.protocol !== 'http:' && reqUrl.protocol !== 'https:') {
             throw new Error('TODO: support protocols other than HTTP(S)');
         }
-        this.url = url;
+        this.url = reqUrl.href;
     }
     async loadData(types = ['autoconfig', 'serverinfo', 'events', 'changelogs']) {
         const req_promises = [];
@@ -82,7 +63,7 @@ class A3sRemoteServer {
         return (0, got_1.default)(this.url + t, { decompress: false })
             .buffer()
             .then(buff => {
-            this[t] = new java_io_1.InputObjectStream(zlib.gunzipSync(buff), false).readObject();
+            this[t] = new java_io_1.InputObjectStream((0, zlib_1.gunzipSync)(buff), false).readObject();
             // console.log(JSON.stringify(this[t], null, 2)); // debug
         })
             .catch(e => console.error(t, e.message));

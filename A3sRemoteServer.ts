@@ -1,4 +1,4 @@
-import * as zlib from 'zlib';
+import { gunzipSync } from 'zlib';
 import got, { CancelableRequest } from 'got';
 
 // ArmA3Sync & java.io interfaces stolen from: https://github.com/gruppe-adler/node-arma3sync-lib
@@ -134,7 +134,7 @@ export default class A3sRemoteServer {
             throw new Error('TODO: support protocols other than HTTP(S)');
         }
 
-        this.url = url;
+        this.url = reqUrl.href;
     }
 
     public async loadData(types: Array<keyof typeof A3sDataTypes> = ['autoconfig', 'serverinfo', 'events', 'changelogs']): Promise<void> {
@@ -150,7 +150,7 @@ export default class A3sRemoteServer {
         return got(this.url + t, { decompress: false })
             .buffer()
             .then(buff => {
-                this[t] = new InputObjectStream(zlib.gunzipSync(buff), false).readObject();
+                this[t] = new InputObjectStream(gunzipSync(buff), false).readObject();
                 // console.log(JSON.stringify(this[t], null, 2)); // debug
             })
             .catch(e => console.error(t, e.message));
