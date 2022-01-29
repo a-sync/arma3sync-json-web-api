@@ -3,6 +3,8 @@ import A3sRemoteServer, { A3sDataTypes } from './A3sRemoteServer';
 
 const CACHE_MAX_AGE = parseInt(process.env.CACHE_MAX_AGE || '0', 10);
 const DBG = Boolean(process.env.DBG) || false;
+const APP_PORT = process.env.app_port || 8080;
+const APP_HOST = process.env.app_host || 'localhost';
 
 createServer(async (req, res) => {
     if (DBG) console.log('DBG: %j %j', (new Date()), req.url);
@@ -39,4 +41,7 @@ createServer(async (req, res) => {
         res.writeHead(301, { 'Location': 'https://github.com/a-sync/arma3sync.cloudno.de' });
         res.end();
     }
-}).listen(8080, '0.0.0.0');
+}).listen(APP_PORT);
+
+console.log('Web service started %s:%s', APP_HOST, APP_PORT);
+
