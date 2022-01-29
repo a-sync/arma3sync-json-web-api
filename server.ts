@@ -39,4 +39,4 @@ createServer(async (req, res) => {
         res.writeHead(301, { 'Location': 'https://github.com/a-sync/arma3sync.cloudno.de' });
         res.end();
     }
-}).listen(80, '0.0.0.0');
+}).listen(8080, '0.0.0.0');
