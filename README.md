@@ -1,4 +1,5 @@
 # arma3sync.cloudno.de
+Web service that reads ArmA3Sync server data and returns it in JSON format.
 
 ## Accepted request query fields
 * **url**: ArmA3Sync server url
@@ -10,7 +11,7 @@
 
 ## Success response
 _Status 200 application/json_  
-Object.
+Object. Has a `url` field with string value.
 ```ts
 {
     url: string;
@@ -27,6 +28,6 @@ Object. Has a single `error` field with string value.
 
 ## Examples
 ```
-https://arma3sync.cloudno.de/?url=http://repo.ofcra.org/.a3s
-https://arma3sync.cloudno.de/?url=https://arma3sync.anrop.se/.a3s/autoconfig&types=serverinfo,autoconfig
+https://arma3sync.cloudno.de/?url=https://arma3sync.anrop.se/.a3s
+https://arma3sync.cloudno.de/?url=http://repo.ofcra.org/.a3s&types=serverinfo,events
 ```
