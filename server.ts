@@ -1,9 +1,10 @@
 import { createServer } from 'http';
+import { URL } from 'url';
 import A3sRemoteServer, { A3sDataTypes } from './A3sRemoteServer';
 
 const CACHE_MAX_AGE = parseInt(process.env.CACHE_MAX_AGE || '0', 10);
 const DBG = Boolean(process.env.DBG) || false;
-const APP_PORT = process.env.app_port || 8080;
+const APP_PORT = process.env.app_port || '8080';
 const APP_HOST = process.env.app_host || 'localhost';
 
 createServer(async (req, res) => {

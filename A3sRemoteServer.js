@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.A3sDataTypes = exports.A3sEncryption = exports.A3sProtocol = void 0;
+const url_1 = require("url");
 const zlib_1 = require("zlib");
 const got_1 = __importDefault(require("got"));
 // ArmA3Sync & java.io interfaces stolen from: https://github.com/gruppe-adler/node-arma3sync-lib
@@ -46,7 +47,7 @@ class A3sRemoteServer {
         if (url.slice(-1) !== '/') {
             url += '/';
         }
-        const reqUrl = new URL(url);
+        const reqUrl = new url_1.URL(url);
         if (reqUrl.protocol !== 'http:' && reqUrl.protocol !== 'https:') {
             throw new Error('TODO: support protocols other than HTTP(S)');
         }

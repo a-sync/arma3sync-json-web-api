@@ -1,3 +1,4 @@
+import { URL } from 'url';
 import { gunzipSync } from 'zlib';
 import got, { CancelableRequest } from 'got';
 
