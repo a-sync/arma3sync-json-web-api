@@ -153,7 +153,7 @@ export default class A3sRemoteServer {
             .then(buff => {
                 this[t] = new InputObjectStream(gunzipSync(buff), false).readObject();
                 // console.log(JSON.stringify(this[t], null, 2)); // debug
-            })
-            .catch(e => console.error(t, e.message));
+            });
+            // .catch(e => console.error(t, e.message)); // debug
     }
 }

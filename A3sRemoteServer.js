@@ -66,8 +66,8 @@ class A3sRemoteServer {
             .then(buff => {
             this[t] = new java_io_1.InputObjectStream((0, zlib_1.gunzipSync)(buff), false).readObject();
             // console.log(JSON.stringify(this[t], null, 2)); // debug
-        })
-            .catch(e => console.error(t, e.message));
+        });
+        // .catch(e => console.error(t, e.message)); // debug
     }
 }
 exports.default = A3sRemoteServer;

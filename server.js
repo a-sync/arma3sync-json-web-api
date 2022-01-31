@@ -7,10 +7,10 @@ const http_1 = require("http");
 const url_1 = require("url");
 const A3sRemoteServer_1 = __importDefault(require("./A3sRemoteServer"));
 const CACHE_MAX_AGE = parseInt(process.env.CACHE_MAX_AGE || '0', 10);
-const DBG = Boolean(process.env.DBG) || false;
+const DBG = Boolean(process.env.DBG || false);
 const APP_PORT = process.env.app_port || '8080';
 const APP_HOST = process.env.app_host || 'localhost';
-(0, http_1.createServer)(async (req, res) => {
+(0, http_1.createServer)((req, res) => {
     if (DBG)
         console.log('DBG: %j %j', (new Date()), req.url);
     const reqUrl = new url_1.URL(req.url || '', 'http://localhost');
