@@ -29,5 +29,5 @@ Object. Has a single `error` field with string value.
 ## Examples
 ```
 https://arma3sync.cloudno.de/?url=https://arma3sync.anrop.se/.a3s
-https://arma3sync.cloudno.de/?url=http://repo.ofcra.org/.a3s&types=serverinfo,events
+https://arma3sync.cloudno.de/?url=https://repo.ofcra.org/.a3s&types=serverinfo,events
 ```
