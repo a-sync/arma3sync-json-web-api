@@ -1,4 +1,4 @@
-# arma3sync.cloudno.de
+# arma3sync-json-web-api
 Web service that reads ArmA3Sync server data and returns it in JSON format.
 
 ## Accepted request query fields
