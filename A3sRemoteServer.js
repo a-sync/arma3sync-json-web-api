@@ -1,12 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.A3sDataTypes = exports.A3sEncryption = exports.A3sProtocol = void 0;
+const stream_1 = require("stream");
 const url_1 = require("url");
 const zlib_1 = require("zlib");
-const got_1 = __importDefault(require("got"));
+const axios_1 = __importDefault(require("axios"));
+const ftp = __importStar(require("basic-ftp"));
 // ArmA3Sync & java.io interfaces stolen from: https://github.com/gruppe-adler/node-arma3sync-lib
 const java_io_1 = require("java.io");
 var A3sProtocol;
@@ -48,26 +73,66 @@ class A3sRemoteServer {
             url += '/';
         }
         const reqUrl = new url_1.URL(url);
-        if (reqUrl.protocol !== 'http:' && reqUrl.protocol !== 'https:') {
-            throw new Error('TODO: support protocols other than HTTP(S)');
+        if (!['http:', 'https:', 'ftp:', 'ftps:'].includes(reqUrl.protocol)) {
+            throw new Error('Unupported protocol ' + reqUrl.protocol);
         }
-        this.url = reqUrl.href;
+        this.url = reqUrl;
     }
     async loadData(types = ['autoconfig', 'serverinfo', 'events', 'changelogs']) {
-        const req_promises = [];
-        for (const t of types) {
-            req_promises.push(this.loadSingleData(t));
+        if (this.url.protocol === 'http:' || this.url.protocol === 'https:') {
+            const req_promises = [];
+            for (const t of types) {
+                req_promises.push(this.loadSingleHttpData(t));
+            }
+            await Promise.allSettled(req_promises);
         }
-        return Promise.all(req_promises).then(() => Promise.resolve());
+        else if (this.url.protocol === 'ftp:' || this.url.protocol === 'ftps:') {
+            const client = new ftp.Client();
+            // client.ftp.verbose = true;
+            await client.access({
+                host: this.url.host,
+                port: this.url.port ? Number(this.url.port) : undefined,
+                secure: Boolean(this.url.protocol === 'ftps:')
+            });
+            for (const t of types) {
+                await this.loadSingleFtpData(client, t);
+            }
+            client.close();
+        }
     }
-    async loadSingleData(t) {
-        return (0, got_1.default)(this.url + t, { decompress: false })
-            .buffer()
-            .then(buff => {
+    async loadSingleHttpData(t) {
+        try {
+            const response = await axios_1.default.get(`${this.url.href}${t}`, { responseType: 'arraybuffer' });
+            const buff = Buffer.from(response.data);
             this[t] = new java_io_1.InputObjectStream((0, zlib_1.gunzipSync)(buff), false).readObject();
-            // console.log(JSON.stringify(this[t], null, 2)); // debug
-        });
-        // .catch(e => console.error(t, e.message)); // debug
+        }
+        catch (error) {
+            console.error(`${this.url.href}${t}`, error);
+        }
+    }
+    async loadSingleFtpData(client, t) {
+        try {
+            const chunks = [];
+            const pass = new stream_1.PassThrough();
+            pass.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+            await client.downloadTo(pass, `${this.url.pathname}${t}`);
+            const buff = Buffer.concat(chunks);
+            this[t] = new java_io_1.InputObjectStream((0, zlib_1.gunzipSync)(buff), false).readObject();
+        }
+        catch (error) {
+            console.error(`${this.url.href}${t}`, error);
+        }
+    }
+    toJSON() {
+        return {
+            url: this.url,
+            autoconfig: this.autoconfig,
+            serverinfo: this.serverinfo,
+            events: this.events,
+            changelogs: this.changelogs
+        };
     }
 }
 exports.default = A3sRemoteServer;

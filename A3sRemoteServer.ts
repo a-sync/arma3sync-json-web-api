@@ -1,9 +1,12 @@
+import { PassThrough } from 'stream';
 import { URL } from 'url';
 import { gunzipSync } from 'zlib';
-import got, { CancelableRequest } from 'got';
+import axios, { AxiosResponse } from 'axios';
+import * as ftp from 'basic-ftp';
 
 // ArmA3Sync & java.io interfaces stolen from: https://github.com/gruppe-adler/node-arma3sync-lib
 import { InputObjectStream } from 'java.io';
+
 export interface A3sEventDto {
     name: string;
     description: string;
@@ -111,7 +114,7 @@ export enum A3sDataTypes {
 }
 
 export default class A3sRemoteServer {
-    url: string;
+    url: URL;
     autoconfig?: A3sAutoconfigDto;
     serverinfo?: A3sServerInfoDto;
     events?: A3sEventsDto;
@@ -131,29 +134,75 @@ export default class A3sRemoteServer {
         }
 
         const reqUrl = new URL(url);
-        if (reqUrl.protocol !== 'http:' && reqUrl.protocol !== 'https:') {
-            throw new Error('TODO: support protocols other than HTTP(S)');
+        if (!['http:', 'https:', 'ftp:', 'ftps:'].includes(reqUrl.protocol)) {
+            throw new Error('Unupported protocol ' + reqUrl.protocol);
         }
 
-        this.url = reqUrl.href;
+        this.url = reqUrl;
     }
 
     public async loadData(types: Array<keyof typeof A3sDataTypes> = ['autoconfig', 'serverinfo', 'events', 'changelogs']): Promise<void> {
-        const req_promises: Array<Promise<CancelableRequest | void>> = [];
-        for (const t of types) {
-            req_promises.push(this.loadSingleData(t));
-        }
+        if (this.url.protocol === 'http:' || this.url.protocol === 'https:') {
+            const req_promises: Array<Promise<AxiosResponse | void>> = [];
 
-        return Promise.all(req_promises).then(() => Promise.resolve());
+            for (const t of types) {
+                req_promises.push(this.loadSingleHttpData(t));
+            }
+
+            await Promise.allSettled(req_promises);
+        } else if (this.url.protocol === 'ftp:' || this.url.protocol === 'ftps:') {
+            const client = new ftp.Client();
+            // client.ftp.verbose = true;
+
+            await client.access({
+                host: this.url.host,
+                port: this.url.port ? Number(this.url.port) : undefined,
+                secure: Boolean(this.url.protocol === 'ftps:')
+            });
+
+            for (const t of types) {
+                await this.loadSingleFtpData(client, t);
+            }
+
+            client.close();
+        }
     }
 
-    private async loadSingleData(t: keyof typeof A3sDataTypes): Promise<CancelableRequest | void> {
-        return got(this.url + t, { decompress: false })
-            .buffer()
-            .then(buff => {
-                this[t] = new InputObjectStream(gunzipSync(buff), false).readObject();
-                // console.log(JSON.stringify(this[t], null, 2)); // debug
+    private async loadSingleHttpData(t: keyof typeof A3sDataTypes): Promise<AxiosResponse | void> {
+        try {
+            const response: AxiosResponse<ArrayBuffer> = await axios.get(`${this.url.href}${t}`, { responseType: 'arraybuffer' });
+            const buff: Buffer = Buffer.from(response.data);
+            this[t] = new InputObjectStream(gunzipSync(buff), false).readObject();
+        } catch (error) {
+            console.error(`${this.url.href}${t}`, error);
+        }
+    }
+
+    private async loadSingleFtpData(client: ftp.Client, t: keyof typeof A3sDataTypes): Promise<AxiosResponse | void> {
+        try {
+            const chunks: Buffer[] = [];
+            const pass = new PassThrough();
+
+            pass.on('data', (chunk) => {
+                chunks.push(chunk);
             });
-            // .catch(e => console.error(t, e.message)); // debug
+
+            await client.downloadTo(pass, `${this.url.pathname}${t}`);
+
+            const buff: Buffer = Buffer.concat(chunks);
+            this[t] = new InputObjectStream(gunzipSync(buff), false).readObject();
+        } catch (error) {
+            console.error(`${this.url.href}${t}`, error);
+        }
+    }
+
+    private toJSON() {
+        return {
+            url: this.url,
+            autoconfig: this.autoconfig,
+            serverinfo: this.serverinfo,
+            events: this.events,
+            changelogs: this.changelogs
+        }
     }
 }

@@ -7,7 +7,7 @@ const DBG = Boolean(process.env.DBG || false);
 const APP_PORT = process.env.app_port || '8080';
 const APP_HOST = process.env.app_host || 'localhost';
 
-createServer((req, res) => {
+createServer(async (req, res) => {
     if (DBG) console.log('DBG: %j %j', (new Date()), req.url);
 
     const reqUrl = new URL(req.url || '', 'http://localhost');
@@ -29,17 +29,21 @@ createServer((req, res) => {
             if (DBG) console.log('Types: %j', types);
         }
 
-        a3srs.loadData(types)
-            .then(_ => {
+        try {
+            await a3srs.loadData(types);
+            if (Object.keys(a3srs).length > 1) {
                 res.writeHead(200, res_headers);
                 res.end(JSON.stringify(a3srs, null, DBG ? 2 : 0));
-            }).catch(err => {
-                if (DBG) console.error('Error: %s', err.message);
-                res.writeHead(404, res_headers);
-                res.end(JSON.stringify({ error: err.message }, null, DBG ? 2 : 0));
-            });
+            } else {
+                throw new Error('Data retrieval from the server failed.');
+            }
+        } catch (error: any) {
+            if (DBG) console.error(error);
+            res.writeHead(404, res_headers);
+            res.end(JSON.stringify({ error: error?.message || error }, null, DBG ? 2 : 0));
+        }
     } else {
-        res.writeHead(301, { 'Location': 'https://github.com/a-sync/arma3sync.cloudno.de' });
+        res.writeHead(301, { 'Location': 'https://github.com/a-sync/arma3sync-json-web-api' });
         res.end();
     }
 }).listen(APP_PORT);
